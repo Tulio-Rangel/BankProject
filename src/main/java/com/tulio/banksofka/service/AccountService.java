@@ -55,11 +55,6 @@ public class AccountService {
         return accountRepository.save(account);
     }
 
-    public Double getBalance(Long accountId) {
-        BankAccount account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
-        return account.getBalance();
-    }
 
     public void makeDeposit(Long accountId, Double amount) {
         BankAccount account = accountRepository.findById(accountId)
