@@ -30,9 +30,10 @@ public class SecurityConfig {
                 .and()
                 .addFilterBefore(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/auth/**", "/api/users").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/users", "/h2-console/**").permitAll()
                         .anyRequest().authenticated()
-                );
+                )
+                .headers().frameOptions().disable(); // Para acceder a la consola H2
 
         return http.build();
     }
