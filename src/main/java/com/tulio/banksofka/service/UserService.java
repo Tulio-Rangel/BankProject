@@ -23,6 +23,14 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    public User updateUser(User user) {
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
+        return userRepository.save(user);
+    }
+
+
     public void deleteUser(Long id) {
         userRepository.deleteById(id);
     }
