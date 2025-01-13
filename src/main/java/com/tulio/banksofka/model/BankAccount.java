@@ -3,11 +3,14 @@ package com.tulio.banksofka.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Data
+@NoArgsConstructor
 @Table(name = "accounts")
 public class BankAccount {
     @Id
@@ -23,4 +26,18 @@ public class BankAccount {
     @JsonIgnore
     @OneToMany(mappedBy = "account", cascade = CascadeType.ALL)
     private List<Transaction> transactions;
+
+    // Modificación: Método inmutable que devuelve una nueva instancia con el balance actualizado.
+    public BankAccount withBalance(Double newBalance) {
+        return new BankAccount(this.id, this.accountNumber, newBalance, this.user, this.transactions);
+    }
+
+    // Constructor inmutable para apoyar el método withBalance
+    public BankAccount(Long id, String accountNumber, Double balance, User user, List<Transaction> transactions) {
+        this.id = id;
+        this.accountNumber = accountNumber;
+        this.balance = balance;
+        this.user = user;
+        this.transactions = new ArrayList<>(transactions); // Inmutabilidad en listas
+    }
 }

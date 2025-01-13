@@ -18,16 +18,40 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public User createUser(User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        return userRepository.save(user);
+    // Función pura que crea un nuevo User con password encriptado
+    private User prepareNewUser(User userInput) {
+        return new User(
+                userInput.getId(),
+                userInput.getName(),
+                passwordEncoder.encode(userInput.getPassword()),
+                userInput.getEmail()
+        );
     }
 
-    public User updateUser(User user) {
-        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
-        }
-        return userRepository.save(user);
+    // Método que maneja el efecto secundario (persistencia)
+    public User createUser(User userInput) {
+        User preparedUser = prepareNewUser(userInput);  // Primero la transformación pura
+        return userRepository.save(preparedUser);       // Luego el efecto secundario
+    }
+
+    // Función pura que prepara el usuario para actualización
+    private User prepareUserUpdate(User userInput) {
+        String newPassword = userInput.getPassword() != null && !userInput.getPassword().isEmpty()
+                ? passwordEncoder.encode(userInput.getPassword())
+                : userInput.getPassword();
+
+        return new User(
+                userInput.getId(),
+                userInput.getName(),
+                newPassword,
+                userInput.getEmail()
+        );
+    }
+
+    // Método que maneja el efecto secundario (persistencia)
+    public User updateUser(User userInput) {
+        User preparedUser = prepareUserUpdate(userInput);  // Primero la transformación pura
+        return userRepository.save(preparedUser);          // Luego el efecto secundario
     }
 
 
