@@ -2,7 +2,10 @@ package com.tulio.banksofka.controller;
 
 import com.tulio.banksofka.dto.AuthRequest;
 import com.tulio.banksofka.dto.AuthResponse;
+import com.tulio.banksofka.model.User;
 import com.tulio.banksofka.security.JwtUtil;
+import com.tulio.banksofka.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -21,6 +24,9 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final UserDetailsService userDetailsService;
     private final JwtUtil jwtUtil;
+
+    @Autowired
+    private UserService userService;
 
     public AuthController(
             AuthenticationManager authenticationManager,
@@ -47,6 +53,9 @@ public class AuthController {
         final UserDetails userDetails = userDetailsService.loadUserByUsername(authRequest.getEmail());
         final String jwt = jwtUtil.generateToken(userDetails);
 
-        return ResponseEntity.ok(new AuthResponse(jwt));
+        // Obtener el usuario completo para enviar el nombre
+        User user = userService.findByEmail(authRequest.getEmail());
+
+        return ResponseEntity.ok(new AuthResponse(jwt, user.getName(), user.getId()));
     }
 }
