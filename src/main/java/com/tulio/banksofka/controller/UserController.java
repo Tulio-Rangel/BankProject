@@ -2,6 +2,7 @@ package com.tulio.banksofka.controller;
 
 import com.tulio.banksofka.model.BankAccount;
 import com.tulio.banksofka.model.User;
+import com.tulio.banksofka.service.AccountService;
 import com.tulio.banksofka.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,15 +14,18 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final AccountService accountService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, AccountService accountService) {
         this.userService = userService;
+        this.accountService = accountService;
     }
 
 
     @PostMapping("/users")
-    public ResponseEntity<User> createUser(@RequestBody User user) {
-        return ResponseEntity.ok(userService.createUser(user));
+    public ResponseEntity<BankAccount> createUser(@RequestBody User user) {
+        User finalUser = userService.createUser(user);
+        return ResponseEntity.ok(accountService.createAccount(finalUser));
     }
 
     @PutMapping("/users/{userId}")

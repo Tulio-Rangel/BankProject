@@ -2,6 +2,7 @@ package com.tulio.banksofka.controller;
 
 import com.tulio.banksofka.dto.BalanceDTO;
 import com.tulio.banksofka.dto.TransactionDTO;
+import com.tulio.banksofka.dto.TransactionRequest;
 import com.tulio.banksofka.model.BankAccount;
 import com.tulio.banksofka.model.User;
 import com.tulio.banksofka.service.AccountService;
@@ -35,16 +36,16 @@ public class BankController {
     @PostMapping("/accounts/{accountId}/deposit")
     public ResponseEntity<Void> makeDeposit(
             @PathVariable Long accountId,
-            @RequestParam Double amount) {
-        accountService.makeDeposit(accountId, amount);
+            @RequestBody TransactionRequest deposit) {
+        accountService.makeDeposit(accountId, deposit.getAmount());
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/accounts/{accountId}/withdrawal")
     public ResponseEntity<Void> makeWithdrawal(
             @PathVariable Long accountId,
-            @RequestParam Double amount) {
-        accountService.makeWithdrawal(accountId, amount);
+            @RequestBody TransactionRequest withdrawal) {
+        accountService.makeWithdrawal(accountId, withdrawal.getAmount());
         return ResponseEntity.ok().build();
     }
 
