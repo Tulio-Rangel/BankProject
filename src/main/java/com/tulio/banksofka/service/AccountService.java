@@ -1,5 +1,6 @@
 package com.tulio.banksofka.service;
 
+import com.tulio.banksofka.dto.AuditTransactionRequest;
 import com.tulio.banksofka.dto.BalanceDTO;
 import com.tulio.banksofka.dto.TransactionDTO;
 import com.tulio.banksofka.model.BankAccount;
@@ -9,6 +10,7 @@ import com.tulio.banksofka.repository.BankAccountRepository;
 import com.tulio.banksofka.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -21,10 +23,12 @@ import java.util.stream.Collectors;
 public class AccountService {
     private final BankAccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
+    private final WebClient webClient;
 
-    public AccountService(BankAccountRepository accountRepository, TransactionRepository transactionRepository) {
+    public AccountService(BankAccountRepository accountRepository, TransactionRepository transactionRepository, WebClient webClient) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
+        this.webClient = webClient;
     }
 
     // Modificación: Composición de funciones para separar validaciones y lógica de generación.
@@ -59,31 +63,54 @@ public class AccountService {
         return new Transaction(type, amount, LocalDateTime.now(), account);
     }
 
-    // Modificación: Uso de Optional como Mónada para evitar null checks explícitos y manejar errores.
     public void makeDeposit(Long accountId, Double amount) {
-        accountRepository.findById(accountId)
-                .map(account -> {
-                    BankAccount updatedAccount = account.withBalance(account.getBalance() + amount);
-                    Transaction depositTransaction = createTransaction("DEPOSIT", amount, updatedAccount);
-                    transactionRepository.save(depositTransaction);
-                    return accountRepository.save(updatedAccount);
-                })
+        BankAccount account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
+
+        Double initialBalance = account.getBalance();
+        account.setBalance(account.getBalance() + amount);
+        accountRepository.save(account);
+
+        // Llamar al Proyecto 2 para registrar la auditoría
+        AuditTransactionRequest request = new AuditTransactionRequest();
+        request.setUserId(account.getUser().getId().toString());
+        request.setInitialBalance(initialBalance);
+        request.setAmount(amount);
+        request.setFinalBalance(account.getBalance());
+
+        webClient.post()
+                .uri("/api/audit/deposits")
+                .bodyValue(request)
+                .retrieve()
+                .toBodilessEntity()
+                .subscribe(); // Ejecutar de forma asíncrona
     }
 
-    // Modificación: Uso de Optional como Mónada para evitar null checks explícitos y manejar errores.
     public void makeWithdrawal(Long accountId, Double amount) {
-        accountRepository.findById(accountId)
-                .map(account -> {
-                    if (account.getBalance() < amount) {
-                        throw new RuntimeException("Saldo insuficiente");
-                    }
-                    BankAccount updatedAccount = account.withBalance(account.getBalance() - amount);
-                    Transaction withdrawalTransaction = createTransaction("WITHDRAWAL", amount, updatedAccount);
-                    transactionRepository.save(withdrawalTransaction);
-                    return accountRepository.save(updatedAccount);
-                })
+        BankAccount account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
+
+        if (account.getBalance() < amount) {
+            throw new RuntimeException("Saldo insuficiente");
+        }
+
+        Double initialBalance = account.getBalance();
+        account.setBalance(account.getBalance() - amount);
+        accountRepository.save(account);
+
+        // Llamar al Proyecto 2 para registrar la auditoría
+        AuditTransactionRequest request = new AuditTransactionRequest();
+        request.setUserId(account.getUser().getId().toString());
+        request.setInitialBalance(initialBalance);
+        request.setAmount(amount);
+        request.setFinalBalance(account.getBalance());
+
+        webClient.post()
+                .uri("/api/audit/withdrawals")
+                .bodyValue(request)
+                .retrieve()
+                .toBodilessEntity()
+                .subscribe(); // Ejecutar de forma asíncrona
     }
 
     // Modificación: Composición de funciones para transformar y ordenar datos de manera funcional.
