@@ -56,6 +56,6 @@ public class AuthController {
         // Obtener el usuario completo para enviar el nombre
         User user = userService.findByEmail(authRequest.getEmail());
 
-        return ResponseEntity.ok(new AuthResponse(jwt, user.getName(), user.getId()));
+        return ResponseEntity.ok(new AuthResponse(jwt, user.getName(), user.getEmail(), user.getId()));
     }
 }
