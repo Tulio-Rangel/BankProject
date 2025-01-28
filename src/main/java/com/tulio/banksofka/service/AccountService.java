@@ -71,6 +71,9 @@ public class AccountService {
         account.setBalance(account.getBalance() + amount);
         accountRepository.save(account);
 
+        Transaction transaction = createTransaction("DEPOSIT", amount, account);
+        transactionRepository.save(transaction);
+
         // Llamar al Proyecto 2 para registrar la auditoría
         AuditTransactionRequest request = new AuditTransactionRequest();
         request.setUserId(account.getUser().getId().toString());
@@ -97,6 +100,9 @@ public class AccountService {
         Double initialBalance = account.getBalance();
         account.setBalance(account.getBalance() - amount);
         accountRepository.save(account);
+
+        Transaction transaction = createTransaction("WITHDRAWAL", amount, account);
+        transactionRepository.save(transaction);
 
         // Llamar al Proyecto 2 para registrar la auditoría
         AuditTransactionRequest request = new AuditTransactionRequest();
