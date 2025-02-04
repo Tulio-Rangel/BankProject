@@ -2,20 +2,58 @@ package com.tulio.banksofka.service;
 
 import com.tulio.banksofka.model.User;
 import com.tulio.banksofka.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 
 @Service
 @Transactional
 public class UserService {
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public User createUser(User user) {
-        //TODO: lógica de encriptado de contraseña(?)
-        return userRepository.save(user);
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
+
+    // Función pura que crea un nuevo User con password encriptado
+    private User prepareNewUser(User userInput) {
+        return new User(
+                userInput.getId(),
+                userInput.getName(),
+                passwordEncoder.encode(userInput.getPassword()),
+                userInput.getEmail()
+        );
+    }
+
+    // Método que maneja el efecto secundario (persistencia)
+    public User createUser(User userInput) {
+        User preparedUser = prepareNewUser(userInput);  // Primero la transformación pura
+        return userRepository.save(preparedUser);       // Luego el efecto secundario
+    }
+
+    // Función pura que prepara el usuario para actualización
+    private User prepareUserUpdate(User userInput) {
+        String newPassword = userInput.getPassword() != null && !userInput.getPassword().isEmpty()
+                ? passwordEncoder.encode(userInput.getPassword())
+                : userInput.getPassword();
+
+        return new User(
+                userInput.getId(),
+                userInput.getName(),
+                newPassword,
+                userInput.getEmail()
+        );
+    }
+
+    // Método que maneja el efecto secundario (persistencia)
+    public User updateUser(User userInput) {
+        User preparedUser = prepareUserUpdate(userInput);  // Primero la transformación pura
+        return userRepository.save(preparedUser);          // Luego el efecto secundario
+    }
+
 
     public void deleteUser(Long id) {
         userRepository.deleteById(id);
@@ -23,6 +61,11 @@ public class UserService {
 
     public User findById(Long id) {
         return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+    }
+
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
     }
 }

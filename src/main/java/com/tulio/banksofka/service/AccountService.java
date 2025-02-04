@@ -1,49 +1,57 @@
 package com.tulio.banksofka.service;
 
+import com.tulio.banksofka.dto.AuditTransactionRequest;
 import com.tulio.banksofka.dto.BalanceDTO;
 import com.tulio.banksofka.dto.TransactionDTO;
+import com.tulio.banksofka.exception.InsufficientBalanceException;
 import com.tulio.banksofka.model.BankAccount;
 import com.tulio.banksofka.model.Transaction;
 import com.tulio.banksofka.model.User;
 import com.tulio.banksofka.repository.BankAccountRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.tulio.banksofka.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class AccountService {
-    @Autowired
-    private BankAccountRepository accountRepository;
+    private final BankAccountRepository accountRepository;
+    private final TransactionRepository transactionRepository;
+    private final WebClient webClient;
 
-    private static final int ACCOUNT_NUMBER_LENGTH = 10;
-    private static final int MAX_RETRIES = 5;
+    private static final String CUENTA_NO_ENCONTRADA = "Cuenta no encontrada";
+    private static final Random RANDOM = new Random();
 
-    private String generateAccountNumber() {
-        for (int i = 0; i < MAX_RETRIES; i++) {
-            String accountNumber = createRandomAccountNumber();
-            if (!accountRepository.existsByAccountNumber(accountNumber)) {
-                return accountNumber;
-            }
-        }
-        throw new RuntimeException("No se pudo generar un número de cuenta único después de varios intentos");
+
+    public AccountService(BankAccountRepository accountRepository, TransactionRepository transactionRepository, WebClient webClient) {
+        this.accountRepository = accountRepository;
+        this.transactionRepository = transactionRepository;
+        this.webClient = webClient;
     }
 
+    // Modificación: Composición de funciones para separar validaciones y lógica de generación.
+    public String generateAccountNumber() {
+        String accountNumber;
+        do {
+            accountNumber = createRandomAccountNumber();
+        } while (isAccountNumberInUse(accountNumber));
+        return accountNumber;
+    }
+
+    // Modificación: Función pura, depende únicamente de la entrada (random).
     private String createRandomAccountNumber() {
-        StringBuilder accountNumber = new StringBuilder(ACCOUNT_NUMBER_LENGTH);
+        return String.valueOf(RANDOM.nextInt(9000000) + 1000000);
+    }
 
-        accountNumber.append((char) ('1' + new Random().nextInt(9)));
-
-        for (int i = 1; i < ACCOUNT_NUMBER_LENGTH; i++) {
-            accountNumber.append((char) ('0' + new Random().nextInt(10)));
-        }
-
-        return accountNumber.toString();
+    // Modificación: Función pura, consulta la base de datos pero no modifica estado.
+    private boolean isAccountNumberInUse(String accountNumber) {
+        return accountRepository.existsByAccountNumber(accountNumber);
     }
 
 
@@ -55,60 +63,80 @@ public class AccountService {
         return accountRepository.save(account);
     }
 
-    public Double getBalance(Long accountId) {
-        BankAccount account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
-        return account.getBalance();
+    private Transaction createTransaction(String type, Double amount, BankAccount account) {
+        return new Transaction(type, amount, LocalDateTime.now(), account);
     }
 
     public void makeDeposit(Long accountId, Double amount) {
         BankAccount account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
+                .orElseThrow(() -> new RuntimeException(CUENTA_NO_ENCONTRADA));
+
+        Double initialBalance = account.getBalance();
         account.setBalance(account.getBalance() + amount);
-
-        Transaction transaction = new Transaction();
-        transaction.setType("DEPOSIT");
-        transaction.setAmount(amount);
-        transaction.setDate(LocalDateTime.now());
-        transaction.setAccount(account);
-
-        account.getTransactions().add(transaction);
         accountRepository.save(account);
+
+        Transaction transaction = createTransaction("DEPOSIT", amount, account);
+        transactionRepository.save(transaction);
+
+        // Llamar al Proyecto 2 para registrar la auditoría
+        AuditTransactionRequest request = new AuditTransactionRequest();
+        request.setUserId(account.getUser().getId().toString());
+        request.setInitialBalance(initialBalance);
+        request.setAmount(amount);
+        request.setFinalBalance(account.getBalance());
+
+        webClient.post()
+                .uri("/api/audit/deposits")
+                .bodyValue(request)
+                .retrieve()
+                .toBodilessEntity()
+                .subscribe(); // Ejecutar de forma asíncrona
     }
 
     public void makeWithdrawal(Long accountId, Double amount) {
         BankAccount account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
+                .orElseThrow(() -> new RuntimeException(CUENTA_NO_ENCONTRADA));
 
         if (account.getBalance() < amount) {
-            throw new RuntimeException("Saldo insuficiente");
+            throw new InsufficientBalanceException("Saldo insuficiente");
         }
 
+        Double initialBalance = account.getBalance();
         account.setBalance(account.getBalance() - amount);
-
-        Transaction transaction = new Transaction();
-        transaction.setType("WITHDRAWAL");
-        transaction.setAmount(amount);
-        transaction.setDate(LocalDateTime.now());
-        transaction.setAccount(account);
-
-        account.getTransactions().add(transaction);
         accountRepository.save(account);
+
+        Transaction transaction = createTransaction("WITHDRAWAL", amount, account);
+        transactionRepository.save(transaction);
+
+        // Llamar al Proyecto 2 para registrar la auditoría
+        AuditTransactionRequest request = new AuditTransactionRequest();
+        request.setUserId(account.getUser().getId().toString());
+        request.setInitialBalance(initialBalance);
+        request.setAmount(amount);
+        request.setFinalBalance(account.getBalance());
+
+        webClient.post()
+                .uri("/api/audit/withdrawals")
+                .bodyValue(request)
+                .retrieve()
+                .toBodilessEntity()
+                .subscribe(); // Ejecutar de forma asíncrona
     }
 
+    // Modificación: Composición de funciones para transformar y ordenar datos de manera funcional.
     public List<TransactionDTO> getTransactionHistory(Long accountId) {
-        BankAccount account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
-
-        return account.getTransactions().stream()
+        return accountRepository.findById(accountId)
+                .map(BankAccount::getTransactions)
+                .orElseThrow(() -> new RuntimeException(CUENTA_NO_ENCONTRADA))
+                .stream()
                 .map(TransactionDTO::new)
-                .sorted((t1, t2) -> t2.getDate().compareTo(t1.getDate()))
-                .collect(Collectors.toList());
+                .sorted(Comparator.comparing(TransactionDTO::getDate).reversed()) // Orden por fecha descendente
+                .toList();
     }
 
     public BalanceDTO getBalanceInfo(Long accountId) {
         BankAccount account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
+                .orElseThrow(() -> new RuntimeException(CUENTA_NO_ENCONTRADA));
         return new BalanceDTO(account.getAccountNumber(), account.getBalance());
     }
 
