@@ -3,6 +3,7 @@ package com.tulio.banksofka.service;
 import com.tulio.banksofka.dto.AuditTransactionRequest;
 import com.tulio.banksofka.dto.BalanceDTO;
 import com.tulio.banksofka.dto.TransactionDTO;
+import com.tulio.banksofka.exception.InsufficientBalanceException;
 import com.tulio.banksofka.model.BankAccount;
 import com.tulio.banksofka.model.Transaction;
 import com.tulio.banksofka.model.User;
@@ -16,7 +17,6 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -24,6 +24,10 @@ public class AccountService {
     private final BankAccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
     private final WebClient webClient;
+
+    private static final String CUENTA_NO_ENCONTRADA = "Cuenta no encontrada";
+    private static final Random RANDOM = new Random();
+
 
     public AccountService(BankAccountRepository accountRepository, TransactionRepository transactionRepository, WebClient webClient) {
         this.accountRepository = accountRepository;
@@ -42,7 +46,7 @@ public class AccountService {
 
     // Modificación: Función pura, depende únicamente de la entrada (random).
     private String createRandomAccountNumber() {
-        return String.valueOf(new Random().nextInt(9000000) + 1000000);
+        return String.valueOf(RANDOM.nextInt(9000000) + 1000000);
     }
 
     // Modificación: Función pura, consulta la base de datos pero no modifica estado.
@@ -65,7 +69,7 @@ public class AccountService {
 
     public void makeDeposit(Long accountId, Double amount) {
         BankAccount account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
+                .orElseThrow(() -> new RuntimeException(CUENTA_NO_ENCONTRADA));
 
         Double initialBalance = account.getBalance();
         account.setBalance(account.getBalance() + amount);
@@ -91,10 +95,10 @@ public class AccountService {
 
     public void makeWithdrawal(Long accountId, Double amount) {
         BankAccount account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
+                .orElseThrow(() -> new RuntimeException(CUENTA_NO_ENCONTRADA));
 
         if (account.getBalance() < amount) {
-            throw new RuntimeException("Saldo insuficiente");
+            throw new InsufficientBalanceException("Saldo insuficiente");
         }
 
         Double initialBalance = account.getBalance();
@@ -123,16 +127,16 @@ public class AccountService {
     public List<TransactionDTO> getTransactionHistory(Long accountId) {
         return accountRepository.findById(accountId)
                 .map(BankAccount::getTransactions)
-                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"))
+                .orElseThrow(() -> new RuntimeException(CUENTA_NO_ENCONTRADA))
                 .stream()
                 .map(TransactionDTO::new)
                 .sorted(Comparator.comparing(TransactionDTO::getDate).reversed()) // Orden por fecha descendente
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public BalanceDTO getBalanceInfo(Long accountId) {
         BankAccount account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
+                .orElseThrow(() -> new RuntimeException(CUENTA_NO_ENCONTRADA));
         return new BalanceDTO(account.getAccountNumber(), account.getBalance());
     }
 

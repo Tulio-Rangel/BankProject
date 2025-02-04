@@ -1,64 +1,115 @@
 package com.tulio.banksofka.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tulio.banksofka.dto.BalanceDTO;
-import com.tulio.banksofka.security.JwtAuthorizationFilter;
-import com.tulio.banksofka.security.SecurityConfigTest;
+import com.tulio.banksofka.model.BankAccount;
+import com.tulio.banksofka.model.User;
 import com.tulio.banksofka.service.AccountService;
-import com.tulio.banksofka.service.UserService;
-import jakarta.servlet.ServletException;
+import com.tulio.banksofka.exception.InsufficientBalanceException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.io.IOException;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.Mockito.doNothing;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(BankController.class)
-@Import(SecurityConfigTest.class)
+import java.util.HashMap;
+import java.util.Map;
+
+@SpringBootTest
+@AutoConfigureMockMvc
 class BankControllerTest {
+
     @Autowired
     private MockMvc mockMvc;
-    @MockBean
-    private UserService userService;
+
     @MockBean
     private AccountService accountService;
-    @MockBean
-    private JwtAuthorizationFilter jwtAuthorizationFilter;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private BankAccount testAccount;
+    private BalanceDTO balanceDTO;
 
     @BeforeEach
-    void setUp() throws ServletException, IOException {
-        doNothing().when(jwtAuthorizationFilter).doFilter(any(), any(), any());
+    void setUp() {
+        User testUser = new User(1L, "Test User", "password", "test@test.com");
+
+        testAccount = new BankAccount();
+        testAccount.setId(1L);
+        testAccount.setAccountNumber("123456");
+        testAccount.setBalance(1000.0);
+        testAccount.setUser(testUser);
+
+        balanceDTO = new BalanceDTO(null, null);
+        balanceDTO.setAccountNumber("123456");
+        balanceDTO.setBalance(1000.0);
     }
 
     @Test
-    void getBalance_ShouldReturnBalanceInfo() throws Exception {
-        // Arrange
-        BalanceDTO balanceDTO = new BalanceDTO("1234567890", 100.0);
+    @WithMockUser
+    void getBalance_ShouldReturnBalance() throws Exception {
         when(accountService.getBalanceInfo(1L)).thenReturn(balanceDTO);
 
-        // Act & Assert
         mockMvc.perform(get("/api/accounts/1/balance"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accountNumber").value("123456"))
+                .andExpect(jsonPath("$.balance").value(1000.0));
+    }
+
+    @Test
+    @WithMockUser
+    void deposit_ShouldUpdateBalance() throws Exception {
+        Map<String, Double> requestBody = new HashMap<>();
+        requestBody.put("amount", 500.0);
+
+        doNothing().when(accountService).makeDeposit(1L, 500.0);
+        when(accountService.getBalanceInfo(1L)).thenReturn(balanceDTO);
+
+        mockMvc.perform(post("/api/accounts/1/deposit")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestBody)))
                 .andExpect(status().isOk());
     }
 
     @Test
-    void makeDeposit_ShouldReturnOk() throws Exception {
-        // Arrange
-        doNothing().when(accountService).makeDeposit(1L, 100.0);
+    @WithMockUser
+    void withdraw_ShouldUpdateBalance() throws Exception {
+        Map<String, Double> requestBody = new HashMap<>();
+        requestBody.put("amount", 500.0);
 
-        // Act & Assert
-        mockMvc.perform(post("/api/accounts/1/deposit")
-                        .param("amount", "100.0"))
+        doNothing().when(accountService).makeWithdrawal(1L, 500.0);
+        when(accountService.getBalanceInfo(1L)).thenReturn(balanceDTO);
+
+        mockMvc.perform(post("/api/accounts/1/withdrawal")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestBody)))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser
+    void withdraw_WithInsufficientFunds_ShouldReturnBadRequest() throws Exception {
+        Map<String, Double> requestBody = new HashMap<>();
+        requestBody.put("amount", 2000.0);
+
+        doThrow(new InsufficientBalanceException("Insufficient funds"))
+                .when(accountService).makeWithdrawal(1L, 2000.0);
+
+        mockMvc.perform(post("/api/accounts/1/withdrawal")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(requestBody)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Insufficient funds"));
     }
 }

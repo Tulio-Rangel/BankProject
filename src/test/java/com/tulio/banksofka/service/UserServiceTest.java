@@ -2,6 +2,7 @@ package com.tulio.banksofka.service;
 
 import com.tulio.banksofka.model.User;
 import com.tulio.banksofka.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -13,59 +14,82 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
+
     @Mock
     private UserRepository userRepository;
+
     @Mock
     private PasswordEncoder passwordEncoder;
+
     @InjectMocks
     private UserService userService;
 
+    private User testUser;
+
+    @BeforeEach
+    void setUp() {
+        testUser = new User(1L, "Test User", "password", "test@test.com");
+    }
+
     @Test
-    void createUser_ShouldEncodePasswordAndSaveUser() {
-        // Arrange
-        User user = new User();
-        user.setEmail("test@test.com");
-        user.setPassword("password");
-        user.setName("Test User");
+    void createUser_ShouldSaveAndReturnUser() {
+        when(passwordEncoder.encode(any())).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
 
-        when(passwordEncoder.encode("password")).thenReturn("encodedPassword");
-        when(userRepository.save(any(User.class))).thenReturn(user);
+        User result = userService.createUser(testUser);
 
-        // Act
-        User savedUser = userService.createUser(user);
+        assertNotNull(result);
+        assertEquals(testUser.getName(), result.getName());
+        verify(userRepository).save(any(User.class));
+    }
 
-        // Assert
-        verify(passwordEncoder).encode("password");
-        verify(userRepository).save(user);
-        assertEquals("test@test.com", savedUser.getEmail());
+    @Test
+    void updateUser_ShouldUpdateAndReturnUser() {
+        when(passwordEncoder.encode(any())).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+        User result = userService.updateUser(testUser);
+
+        assertNotNull(result);
+        assertEquals(testUser.getName(), result.getName());
+        verify(userRepository).save(any(User.class));
     }
 
     @Test
     void findById_WhenUserExists_ShouldReturnUser() {
-        // Arrange
-        User user = new User();
-        user.setId(1L);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
 
-        // Act
-        User foundUser = userService.findById(1L);
+        User result = userService.findById(1L);
 
-        // Assert
-        assertNotNull(foundUser);
-        assertEquals(1L, foundUser.getId());
+        assertNotNull(result);
+        assertEquals(testUser.getId(), result.getId());
     }
 
     @Test
     void findById_WhenUserDoesNotExist_ShouldThrowException() {
-        // Arrange
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
-        // Act & Assert
         assertThrows(RuntimeException.class, () -> userService.findById(1L));
+    }
+
+    @Test
+    void findByEmail_WhenUserExists_ShouldReturnUser() {
+        when(userRepository.findByEmail("test@test.com")).thenReturn(Optional.of(testUser));
+
+        User result = userService.findByEmail("test@test.com");
+
+        assertNotNull(result);
+        assertEquals(testUser.getEmail(), result.getEmail());
+    }
+
+    @Test
+    void deleteUser_ShouldCallRepository() {
+        userService.deleteUser(1L);
+
+        verify(userRepository).deleteById(1L);
     }
 }

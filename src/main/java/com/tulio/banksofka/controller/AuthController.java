@@ -2,10 +2,10 @@ package com.tulio.banksofka.controller;
 
 import com.tulio.banksofka.dto.AuthRequest;
 import com.tulio.banksofka.dto.AuthResponse;
+import com.tulio.banksofka.exception.InvalidCredentialsException;
 import com.tulio.banksofka.model.User;
 import com.tulio.banksofka.security.JwtUtil;
 import com.tulio.banksofka.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -25,20 +25,20 @@ public class AuthController {
     private final UserDetailsService userDetailsService;
     private final JwtUtil jwtUtil;
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
 
     public AuthController(
             AuthenticationManager authenticationManager,
             UserDetailsService userDetailsService,
-            JwtUtil jwtUtil) {
+            JwtUtil jwtUtil, UserService userService) {
         this.authenticationManager = authenticationManager;
         this.userDetailsService = userDetailsService;
         this.jwtUtil = jwtUtil;
+        this.userService = userService;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> authenticate(@RequestBody AuthRequest authRequest) {
+    public ResponseEntity<AuthResponse> authenticate(@RequestBody AuthRequest authRequest) {
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -47,7 +47,7 @@ public class AuthController {
                     )
             );
         } catch (BadCredentialsException e) {
-            throw new RuntimeException("Credenciales inválidas");
+            throw new InvalidCredentialsException("Credenciales inválidas");
         }
 
         final UserDetails userDetails = userDetailsService.loadUserByUsername(authRequest.getEmail());

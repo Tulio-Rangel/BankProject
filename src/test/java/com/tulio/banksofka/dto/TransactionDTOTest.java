@@ -3,15 +3,15 @@ package com.tulio.banksofka.dto;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
-import com.tulio.banksofka.model.BankAccount;
-import com.tulio.banksofka.model.Transaction;
-import com.tulio.banksofka.model.User;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 
 import org.junit.jupiter.api.Test;
+
+import com.tulio.banksofka.model.BankAccount;
+import com.tulio.banksofka.model.Transaction;
+import com.tulio.banksofka.model.User;
 
 class TransactionDTOTest {
     @Test

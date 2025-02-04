@@ -26,8 +26,11 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-
+    /**
+     * @deprecated
+     */
     @Bean
+    @Deprecated(forRemoval=true)
     public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthorizationFilter jwtAuthorizationFilter) throws Exception {
         http
                 .csrf().disable()
