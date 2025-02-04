@@ -25,6 +25,9 @@ public class AccountService {
     private final TransactionRepository transactionRepository;
     private final WebClient webClient;
 
+    private static final String CUENTA_NO_ENCONTRADA = "Cuenta no encontrada";
+
+
     public AccountService(BankAccountRepository accountRepository, TransactionRepository transactionRepository, WebClient webClient) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
@@ -65,7 +68,7 @@ public class AccountService {
 
     public void makeDeposit(Long accountId, Double amount) {
         BankAccount account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
+                .orElseThrow(() -> new RuntimeException(CUENTA_NO_ENCONTRADA));
 
         Double initialBalance = account.getBalance();
         account.setBalance(account.getBalance() + amount);
@@ -91,7 +94,7 @@ public class AccountService {
 
     public void makeWithdrawal(Long accountId, Double amount) {
         BankAccount account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
+                .orElseThrow(() -> new RuntimeException(CUENTA_NO_ENCONTRADA));
 
         if (account.getBalance() < amount) {
             throw new RuntimeException("Saldo insuficiente");
@@ -123,7 +126,7 @@ public class AccountService {
     public List<TransactionDTO> getTransactionHistory(Long accountId) {
         return accountRepository.findById(accountId)
                 .map(BankAccount::getTransactions)
-                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"))
+                .orElseThrow(() -> new RuntimeException(CUENTA_NO_ENCONTRADA))
                 .stream()
                 .map(TransactionDTO::new)
                 .sorted(Comparator.comparing(TransactionDTO::getDate).reversed()) // Orden por fecha descendente
@@ -132,7 +135,7 @@ public class AccountService {
 
     public BalanceDTO getBalanceInfo(Long accountId) {
         BankAccount account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Cuenta no encontrada"));
+                .orElseThrow(() -> new RuntimeException(CUENTA_NO_ENCONTRADA));
         return new BalanceDTO(account.getAccountNumber(), account.getBalance());
     }
 

@@ -7,7 +7,6 @@ import com.tulio.banksofka.model.BankAccount;
 import com.tulio.banksofka.model.User;
 import com.tulio.banksofka.service.AccountService;
 import com.tulio.banksofka.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,11 +15,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api")
 public class BankController {
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
 
-    @Autowired
-    private AccountService accountService;
+    private final AccountService accountService;
+
+    public BankController(UserService userService, AccountService accountService) {
+        this.userService = userService;
+        this.accountService = accountService;
+    }
 
     @PostMapping("/accounts/{userId}")
     public ResponseEntity<BankAccount> createAccount(@PathVariable Long userId) {
