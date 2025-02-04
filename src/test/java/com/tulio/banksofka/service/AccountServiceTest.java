@@ -45,6 +45,7 @@ class AccountServiceTest {
     @Mock
     private WebClient.RequestBodyUriSpec requestBodyUriSpec;
 
+    @SuppressWarnings("rawtypes")
     @Mock
     private WebClient.RequestHeadersSpec requestHeadersSpec;
 
@@ -67,6 +68,7 @@ class AccountServiceTest {
         destinationAccount.setUser(testUser);
     }
 
+    @SuppressWarnings("unchecked")
     private void setupWebClientMock() {
         when(webClient.post()).thenReturn(requestBodyUriSpec);
         when(requestBodyUriSpec.uri(anyString())).thenReturn(requestBodyUriSpec);
