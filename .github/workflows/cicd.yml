@@ -69,4 +69,4 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
             ghcr.io/tulio-rangel/bankproject:latest
-            ghcr.io/tulio-rangel/bankproject:${{ replace(github.ref_name, '/', '-') }}
+            ghcr.io/tulio-rangel/bankproject:${{ github.ref_name }}
