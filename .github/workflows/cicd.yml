@@ -68,5 +68,5 @@ jobs:
           file: Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+            ghcr.io/tulio-rangel/bankproject:latest
+            ghcr.io/tulio-rangel/bankproject:${{ github.ref_name }}
