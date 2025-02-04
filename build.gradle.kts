@@ -11,7 +11,6 @@ sonar {
     properties {
         property("sonar.projectKey", "Tulio-Rangel_BankProject")
         property("sonar.organization", "tulio-rangel")
-        property("sonar.host.url", "https://sonarcloud.io")
         property("sonnar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml")
     }
 }
