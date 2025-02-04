@@ -7,6 +7,15 @@ plugins {
     id("org.sonarqube") version "3.5.0.2730"
 }
 
+sonar {
+    properties {
+        property("sonar.projectKey", "Tulio-Rangel_BankProject")
+        property("sonar.organization", "tulio-rangel")
+        property("sonar.host.url", "https://sonarcloud.io")
+        property("sonnar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml")
+    }
+}
+
 group = "com.tulio"
 version = "0.0.1-SNAPSHOT"
 
@@ -59,5 +68,13 @@ tasks.test {
 
 tasks.asciidoctor {
     inputs.dir(project.extra["snippetsDir"]!!)
+    dependsOn(tasks.test)
+}
+
+tasks.test {
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
     dependsOn(tasks.test)
 }
