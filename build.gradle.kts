@@ -3,6 +3,8 @@ plugins {
     id("org.springframework.boot") version "3.4.1"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.asciidoctor.jvm.convert") version "3.3.2"
+    id("jacoco")
+    id("org.sonarqube") version "3.5.0.2730"
 }
 
 group = "com.tulio"
