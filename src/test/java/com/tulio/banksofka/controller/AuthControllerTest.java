@@ -2,7 +2,6 @@ package com.tulio.banksofka.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tulio.banksofka.dto.AuthRequest;
-import com.tulio.banksofka.dto.AuthResponse;
 import com.tulio.banksofka.model.User;
 import com.tulio.banksofka.security.JwtUtil;
 import com.tulio.banksofka.service.UserService;
@@ -29,7 +28,6 @@ import java.util.ArrayList;
 @SpringBootTest
 @AutoConfigureMockMvc
 class AuthControllerTest {
-
     @Autowired
     private MockMvc mockMvc;
 
