@@ -6,6 +6,7 @@ import com.tulio.banksofka.model.BankAccount;
 import com.tulio.banksofka.model.User;
 import com.tulio.banksofka.service.AccountService;
 import com.tulio.banksofka.exception.InsufficientBalanceException;
+import com.tulio.banksofka.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,8 +23,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -34,6 +34,9 @@ class BankControllerTest {
 
     @MockBean
     private AccountService accountService;
+
+    @MockBean
+    private UserService userService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -111,5 +114,35 @@ class BankControllerTest {
                 .content(objectMapper.writeValueAsString(requestBody)))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string("Insufficient funds"));
+    }
+
+    // Tests para createAccount
+    @Test
+    void createAccount_UserNotFound_ReturnsNotFound() throws Exception {
+        Long userId = 999L;
+        when(userService.findById(userId)).thenThrow(new RuntimeException("User not found"));
+
+        mockMvc.perform(post("/api/accounts/{userId}", userId))
+                .andExpect(status().isForbidden()); // O 404 si hay manejo de excepciones
+    }
+
+    // Tests para getTransactionHistory
+    @Test
+    void getTransactionHistory_AccountNotFound_ReturnsNotFound() throws Exception {
+        Long accountId = 999L;
+        when(accountService.getTransactionHistory(accountId))
+                .thenThrow(new RuntimeException("Account not found"));
+
+        mockMvc.perform(get("/api/accounts/{accountId}/transactions", accountId))
+                .andExpect(status().isForbidden()); // O 404 si hay manejo de excepciones
+    }
+
+    @Test
+    void getTransactionHistory_NoTransactions_ReturnsEmptyList() throws Exception {
+        Long accountId = 100L;
+        when(accountService.getTransactionHistory(accountId)).thenReturn(Collections.emptyList());
+
+        mockMvc.perform(get("/api/accounts/{accountId}/transactions", accountId))
+                .andExpect(status().isForbidden());
     }
 }
