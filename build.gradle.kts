@@ -109,5 +109,6 @@ sonar {
         property("sonar.sourceEncoding", "UTF-8")
         property("sonar.java.source", "17")
         property("sonar.scm.provider", "git")
+        property("sonar.coverage.exclusions", "**test**")
     }
 }
