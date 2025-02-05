@@ -57,6 +57,17 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
+tasks.register("dockerBuild") {
+    group = "docker"
+    description = "Build the Docker image"
+    doLast {
+        val version = project.version.toString()
+        exec {
+            commandLine("docker", "build", "--build-arg", "APP_VERSION=$version", "-t", "bank-sofka:$version", ".")
+        }
+    }
+}
+
 tasks.test {
     finalizedBy(tasks.jacocoTestReport)
     useJUnitPlatform()
