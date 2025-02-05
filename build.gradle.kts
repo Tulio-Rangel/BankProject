@@ -1,19 +1,14 @@
 plugins {
     java
-    id("org.springframework.boot") version "3.4.1"
+    id("org.springframework.boot") version "3.2.1"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.asciidoctor.jvm.convert") version "3.3.2"
     id("jacoco")
-    id("org.sonarqube") version "3.5.0.2730"
+    id("org.sonarqube") version "4.4.1.3373"
 }
 
-sonar {
-    properties {
-        property("sonar.projectKey", "Tulio-Rangel_BankProject")
-        property("sonar.organization", "tulio-rangel")
-        property("sonar.host.url", "https://sonarcloud.io")
-        property("sonnar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml")
-    }
+jacoco {
+    toolVersion = "0.8.9"
 }
 
 group = "com.tulio"
@@ -41,7 +36,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
-    implementation("org.springframework.boot:spring-boot-starter-security:3.4.1")
+    implementation("org.springframework.boot:spring-boot-starter-security")  // Remove explicit version
     implementation("io.jsonwebtoken:jjwt-api:0.11.5")
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
@@ -63,6 +58,11 @@ tasks.withType<Test> {
 }
 
 tasks.test {
+    finalizedBy(tasks.jacocoTestReport)
+    useJUnitPlatform()
+}
+
+tasks.test {
     outputs.dir(project.extra["snippetsDir"]!!)
 }
 
@@ -71,10 +71,32 @@ tasks.asciidoctor {
     dependsOn(tasks.test)
 }
 
-tasks.test {
-    finalizedBy(tasks.jacocoTestReport)
+tasks.jacocoTestReport {
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        xml.outputLocation.set(file("${buildDir}/reports/jacoco/test/jacocoTestReport.xml"))
+        html.outputLocation.set(file("${buildDir}/reports/jacoco/test/html"))
+    }
+    dependsOn(tasks.test)
 }
 
-tasks.jacocoTestReport {
-    dependsOn(tasks.test)
+
+
+sonar {
+    properties {
+        property("sonar.projectKey", "Tulio-Rangel_BankProject")
+        property("sonar.organization", "tulio-rangel")
+        property("sonar.host.url", "https://sonarcloud.io")
+        property("sonar.java.binaries", setOf("${buildDir}/classes/java/main"))
+        property("sonar.java.test.binaries", setOf("${buildDir}/classes/java/test"))
+        property("sonar.coverage.jacoco.xmlReportPaths", "${buildDir}/reports/jacoco/test/jacocoTestReport.xml")
+        property("sonar.sources", setOf("src/main/java"))
+        property("sonar.tests", setOf("src/test/java"))
+        property("sonar.gradle.skipCompile", true)
+        property("sonar.login", System.getenv("SONAR_TOKEN"))
+        property("sonar.sourceEncoding", "UTF-8")
+        property("sonar.java.source", "17")
+        property("sonar.scm.provider", "git")
+    }
 }
