@@ -19,4 +19,4 @@ ARG APP_VERSION
 ENV APP_VERSION=${APP_VERSION}
 
 # Comando para ejecutar la aplicación
-ENTRYPOINT ["java","-jar","build/libs/BankSofka-${APP_VERSION}.jar"]
+ENTRYPOINT ["java","-jar","build/libs/BankSofka-0.0.1-SNAPSHOT.jar"]
