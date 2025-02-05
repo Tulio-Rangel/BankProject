@@ -8,11 +8,8 @@ COPY build.gradle.kts .
 COPY settings.gradle.kts .
 COPY src src
 
-# Establece permisos de ejecución para gradlew
-RUN chmod +x ./gradlew
-
-# Construye la aplicación
-RUN ./gradlew build -x test
+# Establece permisos de ejecución para gradlew y construye la aplicación
+RUN chmod +x ./gradlew && ./gradlew build -x test
 
 # Puerto que expone la aplicación
 EXPOSE 8080
