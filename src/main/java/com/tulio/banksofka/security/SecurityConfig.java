@@ -80,12 +80,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
-        configuration.setAllowedOrigins(List.of("http://localhost:4200"));
-        configuration.setAllowedOrigins(List.of("http://localhost:8080"));
-        configuration.setAllowedOrigins(List.of("http://localhost:8081"));
-        configuration.setAllowedOrigins(List.of("http://banksofka-frontend:80"));
-        configuration.setAllowedOrigins(List.of("http://banksofka-frontend:42"));
+        configuration.setAllowedOrigins(List.of(
+                "http://localhost:3000",
+                "http://localhost:4200",
+                "http://localhost:8080",
+                "http://localhost:8081",
+                "http://banksofka-frontend:80",
+                "http://banksofka-frontend:4200",
+                "http:localhost:80"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization"));
         configuration.setExposedHeaders(List.of("Authorization"));
