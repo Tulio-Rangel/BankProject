@@ -10,7 +10,7 @@ public class WebClientConfig {
     @Bean
     public WebClient webClient() {
         return WebClient.builder()
-                .baseUrl("http://localhost:8081") // URL del servicio de auditoría
+                .baseUrl("http://bank-sofka-reactive:8081") // URL del servicio de auditoría
                 .build();
     }
 }
