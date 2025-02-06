@@ -21,7 +21,7 @@ public class UserController {
         this.accountService = accountService;
     }
 
-
+    @CrossOrigin(origins = "http://localhost:4200")
     @PostMapping("/users")
     public ResponseEntity<BankAccount> createUser(@RequestBody User user) {
         User finalUser = userService.createUser(user);
@@ -46,6 +46,7 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
+    @CrossOrigin(origins = "http://localhost:4200")
     @GetMapping("/users/{userId}/accounts")
     public ResponseEntity<List<BankAccount>> getUserAccounts(@PathVariable Long userId) {
         User user = userService.findById(userId);
