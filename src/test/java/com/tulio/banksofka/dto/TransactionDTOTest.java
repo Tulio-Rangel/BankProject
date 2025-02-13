@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 
 import com.tulio.banksofka.model.BankAccount;
 import com.tulio.banksofka.model.Transaction;
-import com.tulio.banksofka.model.User;
 
 import static org.junit.jupiter.api.Assertions.*;
 

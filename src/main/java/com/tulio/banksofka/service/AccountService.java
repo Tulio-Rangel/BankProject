@@ -6,9 +6,10 @@ import com.tulio.banksofka.dto.TransactionDTO;
 import com.tulio.banksofka.exception.InsufficientBalanceException;
 import com.tulio.banksofka.model.BankAccount;
 import com.tulio.banksofka.model.Transaction;
-import com.tulio.banksofka.model.User;
+import com.tulio.banksofka.model.UserReference;
 import com.tulio.banksofka.repository.BankAccountRepository;
 import com.tulio.banksofka.repository.TransactionRepository;
+import com.tulio.banksofka.repository.UserReferenceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -23,15 +24,17 @@ import java.util.Random;
 public class AccountService {
     private final BankAccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
+    private final UserReferenceRepository userReferenceRepository;
     private final WebClient webClient;
 
     private static final String CUENTA_NO_ENCONTRADA = "Cuenta no encontrada";
     private static final Random RANDOM = new Random();
 
 
-    public AccountService(BankAccountRepository accountRepository, TransactionRepository transactionRepository, WebClient webClient) {
+    public AccountService(BankAccountRepository accountRepository, TransactionRepository transactionRepository, UserReferenceRepository userReferenceRepository, WebClient webClient) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
+        this.userReferenceRepository = userReferenceRepository;
         this.webClient = webClient;
     }
 
@@ -55,9 +58,18 @@ public class AccountService {
     }
 
 
-    public BankAccount createAccount(User user) {
+    /*public BankAccount createAccount(String userId) {
+        UserReference user = userReferenceRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
         BankAccount account = new BankAccount();
-        account.setUser(user);
+        account.setUserReference(user);
+        account.setBalance(0.0);
+        account.setAccountNumber(generateAccountNumber());
+        return accountRepository.save(account);
+    }*/
+    public BankAccount createAccount(UserReference userReference) {
+        BankAccount account = new BankAccount();
+        account.setUserReference(userReference);
         account.setBalance(0.0);
         account.setAccountNumber(generateAccountNumber());
         return accountRepository.save(account);
@@ -80,7 +92,7 @@ public class AccountService {
 
         // Llamar al Proyecto 2 para registrar la auditoría
         AuditTransactionRequest request = new AuditTransactionRequest();
-        request.setUserId(account.getUser().getId().toString());
+        request.setUserId(account.getUserReference().getUserId());
         request.setInitialBalance(initialBalance);
         request.setAmount(amount);
         request.setFinalBalance(account.getBalance());
@@ -110,7 +122,7 @@ public class AccountService {
 
         // Llamar al Proyecto 2 para registrar la auditoría
         AuditTransactionRequest request = new AuditTransactionRequest();
-        request.setUserId(account.getUser().getId().toString());
+        request.setUserId(account.getUserReference().getUserId());
         request.setInitialBalance(initialBalance);
         request.setAmount(amount);
         request.setFinalBalance(account.getBalance());
@@ -138,6 +150,12 @@ public class AccountService {
         BankAccount account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException(CUENTA_NO_ENCONTRADA));
         return new BalanceDTO(account.getAccountNumber(), account.getBalance());
+    }
+
+    public List<BankAccount> getAccountsByUserId(String userId) {
+        UserReference user = userReferenceRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        return user.getAccounts();
     }
 
 }

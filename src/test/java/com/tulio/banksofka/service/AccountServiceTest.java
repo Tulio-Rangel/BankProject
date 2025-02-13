@@ -3,7 +3,6 @@ package com.tulio.banksofka.service;
 import com.tulio.banksofka.dto.BalanceDTO;
 import com.tulio.banksofka.model.BankAccount;
 import com.tulio.banksofka.model.Transaction;
-import com.tulio.banksofka.model.User;
 import com.tulio.banksofka.repository.BankAccountRepository;
 import com.tulio.banksofka.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;

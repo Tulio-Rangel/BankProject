@@ -36,8 +36,8 @@ jobs:
           args: >
             -Dsonar.java.binaries=build/classes
             -Dsonar.gradle.skipCompile=true
-            -Dsonar.projectKey=Tulio-Rangel_BankProject
-            -Dsonar.organization=tulio-rangel
+            -Dsonar.projectKey=${{vars.PROJECT_KEY}}
+            -Dsonar.organization=${{vars.ORGANIZATION}}
 
   build-and-push:
     runs-on: ubuntu-latest
