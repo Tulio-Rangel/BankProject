@@ -4,9 +4,7 @@ import com.tulio.banksofka.dto.BalanceDTO;
 import com.tulio.banksofka.dto.TransactionDTO;
 import com.tulio.banksofka.dto.TransactionRequest;
 import com.tulio.banksofka.model.BankAccount;
-import com.tulio.banksofka.model.User;
 import com.tulio.banksofka.service.AccountService;
-import com.tulio.banksofka.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

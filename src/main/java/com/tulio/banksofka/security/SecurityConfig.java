@@ -1,6 +1,5 @@
 package com.tulio.banksofka.security;
 
-import com.tulio.banksofka.repository.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;

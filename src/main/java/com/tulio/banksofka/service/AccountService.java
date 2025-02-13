@@ -6,7 +6,6 @@ import com.tulio.banksofka.dto.TransactionDTO;
 import com.tulio.banksofka.exception.InsufficientBalanceException;
 import com.tulio.banksofka.model.BankAccount;
 import com.tulio.banksofka.model.Transaction;
-import com.tulio.banksofka.model.User;
 import com.tulio.banksofka.repository.BankAccountRepository;
 import com.tulio.banksofka.repository.TransactionRepository;
 import org.springframework.stereotype.Service;
