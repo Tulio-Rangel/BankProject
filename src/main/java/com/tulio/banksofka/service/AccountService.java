@@ -58,11 +58,18 @@ public class AccountService {
     }
 
 
-    public BankAccount createAccount(String userId) {
+    /*public BankAccount createAccount(String userId) {
         UserReference user = userReferenceRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
         BankAccount account = new BankAccount();
         account.setUserReference(user);
+        account.setBalance(0.0);
+        account.setAccountNumber(generateAccountNumber());
+        return accountRepository.save(account);
+    }*/
+    public BankAccount createAccount(UserReference userReference) {
+        BankAccount account = new BankAccount();
+        account.setUserReference(userReference);
         account.setBalance(0.0);
         account.setAccountNumber(generateAccountNumber());
         return accountRepository.save(account);

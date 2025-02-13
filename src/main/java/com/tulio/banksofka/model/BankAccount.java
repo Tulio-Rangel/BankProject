@@ -1,6 +1,7 @@
 package com.tulio.banksofka.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,6 +22,7 @@ public class BankAccount {
 
     @ManyToOne
     @JoinColumn(name = "user_id")
+    @JsonManagedReference
     private UserReference userReference;
 
     @JsonIgnore

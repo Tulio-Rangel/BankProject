@@ -4,26 +4,84 @@ import com.tulio.banksofka.dto.BalanceDTO;
 import com.tulio.banksofka.dto.TransactionDTO;
 import com.tulio.banksofka.dto.TransactionRequest;
 import com.tulio.banksofka.model.BankAccount;
+import com.tulio.banksofka.model.UserReference;
+import com.tulio.banksofka.security.JwtUtil;
 import com.tulio.banksofka.service.AccountService;
+import com.tulio.banksofka.service.UserReferenceService;
+import io.jsonwebtoken.Claims;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
+@Slf4j
 @RequestMapping("/api")
 public class BankController {
 
     private final AccountService accountService;
+    private final UserReferenceService userReferenceService;
+    private final JwtUtil jwtUtil;
 
-    public BankController(AccountService accountService) {
+    /*
+     * public BankController(AccountService accountService) {
+     * this.accountService = accountService;
+     * }
+     */
+
+    public BankController(AccountService accountService,
+            UserReferenceService userReferenceService,
+            JwtUtil jwtUtil) {
         this.accountService = accountService;
+        this.userReferenceService = userReferenceService;
+        this.jwtUtil = jwtUtil;
     }
 
-    @CrossOrigin(origins = "http://localhost:4200")
-    @PostMapping("/accounts/{userId}")
-    public ResponseEntity<BankAccount> createAccount(@PathVariable String userId) {
-        return ResponseEntity.ok(accountService.createAccount(userId));
+    /*
+     * @CrossOrigin(origins = "http://localhost:4200")
+     * 
+     * @PostMapping("/accounts/{userId}")
+     * public ResponseEntity<BankAccount> createAccount(@PathVariable String userId)
+     * {
+     * return ResponseEntity.ok(accountService.createAccount(userId));
+     * }
+     */
+
+    @PostMapping("/accounts")
+    public ResponseEntity<?> createAccount(@RequestHeader("Authorization") String authHeader) {
+        try {
+            String token = authHeader.substring(7);
+            log.info("Received token: {}", token);
+
+            Claims claims = jwtUtil.extractAllClaims(token);
+            log.info("Extracted claims from token: {}", claims);
+
+            String userId = claims.get("userId", String.class);
+            String name = claims.get("name", String.class);
+            String email = claims.get("email", String.class);
+
+            log.info("Extracted user data from token - userId: {}, name: {}, email: {}",
+                    userId, name, email);
+
+            if (userId == null || name == null || email == null) {
+                log.error("Required claims are missing from token");
+                return ResponseEntity.badRequest().body("Invalid token: missing required claims");
+            }
+
+            UserReference userReference = userReferenceService.createOrGetUserReference(userId, name, email);
+            BankAccount account = accountService.createAccount(userReference);
+
+            log.info("Created account with userReference - id: {}, userId: {}, name: {}, email: {}",
+                    userReference.getId(), userReference.getUserId(),
+                    userReference.getName(), userReference.getEmail());
+
+            return ResponseEntity.ok(account);
+        } catch (Exception e) {
+            log.error("Error creating account", e);
+            return ResponseEntity.badRequest().body("Error creating account: " + e.getMessage());
+        }
     }
 
     @CrossOrigin(origins = "http://localhost:4200")
