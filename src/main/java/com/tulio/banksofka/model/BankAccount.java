@@ -21,7 +21,7 @@ public class BankAccount {
 
     @ManyToOne
     @JoinColumn(name = "user_id")
-    private User user;
+    private UserReference userReference;
 
     @JsonIgnore
     @OneToMany(mappedBy = "account", cascade = CascadeType.ALL)
@@ -29,15 +29,15 @@ public class BankAccount {
 
     // Modificación: Método inmutable que devuelve una nueva instancia con el balance actualizado.
     public BankAccount withBalance(Double newBalance) {
-        return new BankAccount(this.id, this.accountNumber, newBalance, this.user, this.transactions);
+        return new BankAccount(this.id, this.accountNumber, newBalance, this.userReference, this.transactions);
     }
 
     // Constructor inmutable para apoyar el método withBalance
-    public BankAccount(Long id, String accountNumber, Double balance, User user, List<Transaction> transactions) {
+    public BankAccount(Long id, String accountNumber, Double balance, UserReference userReference, List<Transaction> transactions) {
         this.id = id;
         this.accountNumber = accountNumber;
         this.balance = balance;
-        this.user = user;
+        this.userReference = userReference;
         this.transactions = new ArrayList<>(transactions); // Inmutabilidad en listas
     }
 }

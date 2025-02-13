@@ -13,20 +13,17 @@ import java.util.List;
 @RestController
 @RequestMapping("/api")
 public class BankController {
-    private final UserService userService;
 
     private final AccountService accountService;
 
-    public BankController(UserService userService, AccountService accountService) {
-        this.userService = userService;
+    public BankController(AccountService accountService) {
         this.accountService = accountService;
     }
 
     @CrossOrigin(origins = "http://localhost:4200")
     @PostMapping("/accounts/{userId}")
-    public ResponseEntity<BankAccount> createAccount(@PathVariable Long userId) {
-        User user = userService.findById(userId);
-        return ResponseEntity.ok(accountService.createAccount(user));
+    public ResponseEntity<BankAccount> createAccount(@PathVariable String userId) {
+        return ResponseEntity.ok(accountService.createAccount(userId));
     }
 
     @CrossOrigin(origins = "http://localhost:4200")
@@ -57,6 +54,11 @@ public class BankController {
     @GetMapping("/accounts/{accountId}/transactions")
     public ResponseEntity<List<TransactionDTO>> getTransactionHistory(@PathVariable Long accountId) {
         return ResponseEntity.ok(accountService.getTransactionHistory(accountId));
+    }
+
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<List<BankAccount>> getUserAccounts(@PathVariable String userId) {
+        return ResponseEntity.ok(accountService.getAccountsByUserId(userId));
     }
 
 }
