@@ -1,5 +1,6 @@
 package com.tulio.banksofka.controller;
 
+import com.tulio.banksofka.service.MessageProducerService;
 import com.tulio.banksofka.dto.BalanceDTO;
 import com.tulio.banksofka.dto.TransactionDTO;
 import com.tulio.banksofka.dto.TransactionRequest;
@@ -24,6 +25,7 @@ public class BankController {
     private final AccountService accountService;
     private final UserReferenceService userReferenceService;
     private final JwtUtil jwtUtil;
+    private final MessageProducerService messageProducerService;
 
     /*
      * public BankController(AccountService accountService) {
@@ -33,10 +35,12 @@ public class BankController {
 
     public BankController(AccountService accountService,
             UserReferenceService userReferenceService,
-            JwtUtil jwtUtil) {
+            JwtUtil jwtUtil,
+            MessageProducerService messageProducerService) {
         this.accountService = accountService;
         this.userReferenceService = userReferenceService;
         this.jwtUtil = jwtUtil;
+        this.messageProducerService = messageProducerService;
     }
 
     /*
@@ -67,6 +71,7 @@ public class BankController {
 
             if (userId == null || name == null || email == null) {
                 log.error("Required claims are missing from token");
+                messageProducerService.sendMessage("account.creation", "Error en creación de cuenta para usuario: " + userId, false);
                 return ResponseEntity.badRequest().body("Invalid token: missing required claims");
             }
 
@@ -77,9 +82,12 @@ public class BankController {
                     userReference.getId(), userReference.getUserId(),
                     userReference.getName(), userReference.getEmail());
 
+            messageProducerService.sendMessage("account.creation", "Cuenta creada para usuario: " + userId, true);
+            
             return ResponseEntity.ok(account);
         } catch (Exception e) {
             log.error("Error creating account", e);
+            messageProducerService.sendMessage("account.creation", "Error en creación de cuenta ", false);
             return ResponseEntity.badRequest().body("Error creating account: " + e.getMessage());
         }
     }
@@ -95,8 +103,17 @@ public class BankController {
     public ResponseEntity<Void> makeDeposit(
             @PathVariable Long accountId,
             @RequestBody TransactionRequest deposit) {
-        accountService.makeDeposit(accountId, deposit.getAmount());
-        return ResponseEntity.ok().build();
+    	try {
+    		accountService.makeDeposit(accountId, deposit.getAmount());
+            
+            messageProducerService.sendMessage("transaction.deposit", "Depósito realizado en la cuenta " + accountId, true);
+            return ResponseEntity.ok().build();
+    		
+    	} catch (Exception e) {
+    		messageProducerService.sendMessage("transaction.deposit", "Error en depósito en la cuenta " + accountId, false);
+    		return ResponseEntity.badRequest().build();
+    	}
+        
     }
 
     @CrossOrigin(origins = "http://localhost:4200")
@@ -104,8 +121,16 @@ public class BankController {
     public ResponseEntity<Void> makeWithdrawal(
             @PathVariable Long accountId,
             @RequestBody TransactionRequest withdrawal) {
-        accountService.makeWithdrawal(accountId, withdrawal.getAmount());
-        return ResponseEntity.ok().build();
+    	try {
+    		accountService.makeWithdrawal(accountId, withdrawal.getAmount());
+            
+            messageProducerService.sendMessage("transaction.withdrawal", "Retiro realizado en la cuenta " + accountId, true);
+            return ResponseEntity.ok().build();
+    	}catch (Exception e) {
+    		messageProducerService.sendMessage("transaction.withdrawal", "Error en retiro en la cuenta " + accountId, false);
+    		return ResponseEntity.badRequest().build();
+    	}
+        
     }
 
     @CrossOrigin(origins = "http://localhost:4200")
@@ -114,6 +139,7 @@ public class BankController {
         return ResponseEntity.ok(accountService.getTransactionHistory(accountId));
     }
 
+    @CrossOrigin(origins = "http://localhost:4200")
     @GetMapping("/users/{userId}")
     public ResponseEntity<List<BankAccount>> getUserAccounts(@PathVariable String userId) {
         return ResponseEntity.ok(accountService.getAccountsByUserId(userId));
