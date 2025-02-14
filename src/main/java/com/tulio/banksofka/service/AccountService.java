@@ -1,6 +1,5 @@
 package com.tulio.banksofka.service;
 
-import com.tulio.banksofka.dto.AuditTransactionRequest;
 import com.tulio.banksofka.dto.BalanceDTO;
 import com.tulio.banksofka.dto.TransactionDTO;
 import com.tulio.banksofka.exception.InsufficientBalanceException;
@@ -12,7 +11,6 @@ import com.tulio.banksofka.repository.TransactionRepository;
 import com.tulio.banksofka.repository.UserReferenceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
@@ -25,17 +23,15 @@ public class AccountService {
     private final BankAccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
     private final UserReferenceRepository userReferenceRepository;
-    private final WebClient webClient;
 
     private static final String CUENTA_NO_ENCONTRADA = "Cuenta no encontrada";
     private static final Random RANDOM = new Random();
 
 
-    public AccountService(BankAccountRepository accountRepository, TransactionRepository transactionRepository, UserReferenceRepository userReferenceRepository, WebClient webClient) {
+    public AccountService(BankAccountRepository accountRepository, TransactionRepository transactionRepository, UserReferenceRepository userReferenceRepository) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.userReferenceRepository = userReferenceRepository;
-        this.webClient = webClient;
     }
 
     // Modificación: Composición de funciones para separar validaciones y lógica de generación.
@@ -84,25 +80,11 @@ public class AccountService {
                 .orElseThrow(() -> new RuntimeException(CUENTA_NO_ENCONTRADA));
 
         Double initialBalance = account.getBalance();
-        account.setBalance(account.getBalance() + amount);
+        account.setBalance(initialBalance + amount);
         accountRepository.save(account);
 
         Transaction transaction = createTransaction("DEPOSIT", amount, account);
         transactionRepository.save(transaction);
-
-        // Llamar al Proyecto 2 para registrar la auditoría
-        AuditTransactionRequest request = new AuditTransactionRequest();
-        request.setUserId(account.getUserReference().getUserId());
-        request.setInitialBalance(initialBalance);
-        request.setAmount(amount);
-        request.setFinalBalance(account.getBalance());
-
-        webClient.post()
-                .uri("/api/audit/deposits")
-                .bodyValue(request)
-                .retrieve()
-                .toBodilessEntity()
-                .subscribe(); // Ejecutar de forma asíncrona
     }
 
     public void makeWithdrawal(Long accountId, Double amount) {
@@ -114,25 +96,11 @@ public class AccountService {
         }
 
         Double initialBalance = account.getBalance();
-        account.setBalance(account.getBalance() - amount);
+        account.setBalance(initialBalance - amount);
         accountRepository.save(account);
 
         Transaction transaction = createTransaction("WITHDRAWAL", amount, account);
         transactionRepository.save(transaction);
-
-        // Llamar al Proyecto 2 para registrar la auditoría
-        AuditTransactionRequest request = new AuditTransactionRequest();
-        request.setUserId(account.getUserReference().getUserId());
-        request.setInitialBalance(initialBalance);
-        request.setAmount(amount);
-        request.setFinalBalance(account.getBalance());
-
-        webClient.post()
-                .uri("/api/audit/withdrawals")
-                .bodyValue(request)
-                .retrieve()
-                .toBodilessEntity()
-                .subscribe(); // Ejecutar de forma asíncrona
     }
 
     // Modificación: Composición de funciones para transformar y ordenar datos de manera funcional.
@@ -153,9 +121,14 @@ public class AccountService {
     }
 
     public List<BankAccount> getAccountsByUserId(String userId) {
-        UserReference user = userReferenceRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        return user.getAccounts();
+        UserReference user = userReferenceRepository.findByUserId(userId);
+		if (user == null) {
+	        throw new RuntimeException("Usuario no encontrado");
+	    }
+		List<BankAccount> accounts = user.getAccounts();
+		System.out.println(accounts); // TODO: User with no accounts
+		
+        return accounts;
     }
 
 }
