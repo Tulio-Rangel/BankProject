@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 
 @RestController
@@ -55,6 +56,7 @@ public class BankController {
 
     @PostMapping("/accounts")
     public ResponseEntity<?> createAccount(@RequestHeader("Authorization") String authHeader) {
+        String userId = null;
         try {
             String token = authHeader.substring(7);
             log.info("Received token: {}", token);
@@ -62,7 +64,7 @@ public class BankController {
             Claims claims = jwtUtil.extractAllClaims(token);
             log.info("Extracted claims from token: {}", claims);
 
-            String userId = claims.get("userId", String.class);
+            userId = claims.get("userId", String.class);
             String name = claims.get("name", String.class);
             String email = claims.get("email", String.class);
 
@@ -71,7 +73,7 @@ public class BankController {
 
             if (userId == null || name == null || email == null) {
                 log.error("Required claims are missing from token");
-                messageProducerService.sendMessage("account.creation", "Error en creación de cuenta para usuario: " + userId, false);
+                messageProducerService.sendMessageAccount("account.creation", "Error en creación de cuenta para usuario", userId, false);
                 return ResponseEntity.badRequest().body("Invalid token: missing required claims");
             }
 
@@ -82,12 +84,12 @@ public class BankController {
                     userReference.getId(), userReference.getUserId(),
                     userReference.getName(), userReference.getEmail());
 
-            messageProducerService.sendMessage("account.creation", "Cuenta creada para usuario: " + userId, true);
-            
+            messageProducerService.sendMessageAccount("account.creation", "Cuenta de banco creada", userId, true);
+
             return ResponseEntity.ok(account);
         } catch (Exception e) {
             log.error("Error creating account", e);
-            messageProducerService.sendMessage("account.creation", "Error en creación de cuenta ", false);
+            messageProducerService.sendMessageAccount("account.creation", "Error en creación de cuenta", userId, false);
             return ResponseEntity.badRequest().body("Error creating account: " + e.getMessage());
         }
     }
@@ -103,17 +105,18 @@ public class BankController {
     public ResponseEntity<Void> makeDeposit(
             @PathVariable Long accountId,
             @RequestBody TransactionRequest deposit) {
-    	try {
-    		accountService.makeDeposit(accountId, deposit.getAmount());
-            
-            messageProducerService.sendMessage("transaction.deposit", "Depósito realizado en la cuenta " + accountId, true);
+        HashMap<String, Object> depositDetails = null;
+        try {
+            depositDetails = accountService.makeDeposit(accountId, deposit.getAmount());
+            messageProducerService.sendMessageTransaction("transaction.deposit", "Depósito realizado en la cuenta " + accountId, true, depositDetails);
             return ResponseEntity.ok().build();
-    		
-    	} catch (Exception e) {
-    		messageProducerService.sendMessage("transaction.deposit", "Error en depósito en la cuenta " + accountId, false);
-    		return ResponseEntity.badRequest().build();
-    	}
-        
+
+        } catch (Exception e) {
+            depositDetails.put("message", e.getMessage());
+            messageProducerService.sendMessageTransaction("transaction.deposit", "Error en depósito en la cuenta " + accountId, false, depositDetails);
+            return ResponseEntity.badRequest().build();
+        }
+
     }
 
     @CrossOrigin(origins = "http://localhost:4200")
@@ -121,16 +124,18 @@ public class BankController {
     public ResponseEntity<Void> makeWithdrawal(
             @PathVariable Long accountId,
             @RequestBody TransactionRequest withdrawal) {
-    	try {
-    		accountService.makeWithdrawal(accountId, withdrawal.getAmount());
-            
-            messageProducerService.sendMessage("transaction.withdrawal", "Retiro realizado en la cuenta " + accountId, true);
+        HashMap<String, Object> withdrawalDetails = null;
+        try {
+            withdrawalDetails = accountService.makeWithdrawal(accountId, withdrawal.getAmount());
+
+            messageProducerService.sendMessageTransaction("transaction.withdrawal", "Retiro realizado en la cuenta " + accountId, true, withdrawalDetails);
             return ResponseEntity.ok().build();
-    	}catch (Exception e) {
-    		messageProducerService.sendMessage("transaction.withdrawal", "Error en retiro en la cuenta " + accountId, false);
-    		return ResponseEntity.badRequest().build();
-    	}
-        
+        } catch (Exception e) {
+            withdrawalDetails.put("message", e.getMessage());
+            messageProducerService.sendMessageTransaction("transaction.withdrawal", "Error en retiro en la cuenta " + accountId, false, withdrawalDetails);
+            return ResponseEntity.badRequest().build();
+        }
+
     }
 
     @CrossOrigin(origins = "http://localhost:4200")
