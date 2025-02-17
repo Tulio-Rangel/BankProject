@@ -15,11 +15,21 @@ public class MessageProducerService {
         this.jmsTemplate = jmsTemplate;
     }
 
-    public void sendMessage(String operation, String message, boolean isSuccess) {
-    	Map<String, Object> messagePayload = new HashMap<>();
-    	messagePayload.put("message", message);
+    public void sendMessageAccount(String operation, String message, String userId, boolean isSuccess){
+        Map<String, Object> messagePayload = new HashMap<>();
+        messagePayload.put("message", message);
+        messagePayload.put("userId", userId);
         messagePayload.put("timestamp", LocalDateTime.now().toString());
-        messagePayload.put("status", isSuccess ? "success" : "failed"); 
+        messagePayload.put("status", isSuccess ? "success" : "failed");
+        jmsTemplate.convertAndSend(operation, messagePayload);
+    }
+
+    public void sendMessageTransaction(String operation, String message, boolean isSuccess, HashMap<String, Object> transactionDetails){
+        Map<String, Object> messagePayload = new HashMap<>();
+        messagePayload.put("message", message);
+        messagePayload.put("details", transactionDetails);
+        messagePayload.put("timestamp", LocalDateTime.now().toString());
+        messagePayload.put("status", isSuccess ? "success" : "failed");
         jmsTemplate.convertAndSend(operation, messagePayload);
     }
 }

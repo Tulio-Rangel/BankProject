@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
 
@@ -75,7 +76,9 @@ public class AccountService {
         return new Transaction(type, amount, LocalDateTime.now(), account);
     }
 
-    public void makeDeposit(Long accountId, Double amount) {
+    public HashMap<String, Object> makeDeposit(Long accountId, Double amount) {
+        // Mapa necesario para los detalles de la transacción
+        HashMap<String, Object> depositDetails = new HashMap<>();
         BankAccount account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException(CUENTA_NO_ENCONTRADA));
 
@@ -85,9 +88,16 @@ public class AccountService {
 
         Transaction transaction = createTransaction("DEPOSIT", amount, account);
         transactionRepository.save(transaction);
+
+        depositDetails.put("UserId", account.getUserReference().getUserId());
+        depositDetails.put("InitialBalance", initialBalance);
+        depositDetails.put("Amount", amount);
+        depositDetails.put("FinalBalance", account.getBalance());
+        return depositDetails;
     }
 
-    public void makeWithdrawal(Long accountId, Double amount) {
+    public HashMap<String, Object>  makeWithdrawal(Long accountId, Double amount) {
+        HashMap<String, Object> withdrawalDetails = new HashMap<>();
         BankAccount account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException(CUENTA_NO_ENCONTRADA));
 
@@ -101,6 +111,12 @@ public class AccountService {
 
         Transaction transaction = createTransaction("WITHDRAWAL", amount, account);
         transactionRepository.save(transaction);
+
+        withdrawalDetails.put("UserId", account.getUserReference().getUserId());
+        withdrawalDetails.put("InitialBalance", initialBalance);
+        withdrawalDetails.put("Amount", amount);
+        withdrawalDetails.put("FinalBalance", account.getBalance());
+        return withdrawalDetails;
     }
 
     // Modificación: Composición de funciones para transformar y ordenar datos de manera funcional.
