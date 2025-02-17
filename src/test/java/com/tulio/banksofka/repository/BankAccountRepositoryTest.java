@@ -1,7 +1,6 @@
 package com.tulio.banksofka.repository;
 
 import com.tulio.banksofka.model.BankAccount;
-import com.tulio.banksofka.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
